@@ -139,7 +139,7 @@ GET {{base}}/books?page=2&limit=2&sort=price
 
 ############ CLEAN-UP / DELETE ############
 
-### Delete book
+### Delete book (tip: use the id of the second author's "Home" book so they end up with no books)
 DELETE {{base}}/books/{{bookId}}
 
 ### Rule 6 — stats for an author with no books
