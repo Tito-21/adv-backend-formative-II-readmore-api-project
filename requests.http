@@ -1,0 +1,149 @@
+### ReadMore API — demo requests
+### Use with the VS Code "REST Client" extension (click "Send Request" above each one).
+### After creating authors/books, paste their real _id values into the variables below.
+
+@base = http://localhost:3000
+@authorId = PASTE_AUTHOR_ID
+@author2Id = PASTE_SECOND_AUTHOR_ID
+@bookId = PASTE_BOOK_ID
+@fakeId = 507f1f77bcf86cd799439011
+
+### Health check
+GET {{base}}/
+
+############ AUTHORS ############
+
+### Create author
+POST {{base}}/authors
+Content-Type: application/json
+
+{ "name": "Chinua Achebe", "country": "Nigeria", "bio": "Nigerian novelist and poet" }
+
+### Create second author
+POST {{base}}/authors
+Content-Type: application/json
+
+{ "name": "Ngugi wa Thiong'o", "country": "Kenya", "bio": "Kenyan writer" }
+
+### Get all authors
+GET {{base}}/authors
+
+### Get one author
+GET {{base}}/authors/{{authorId}}
+
+### Get author that does not exist (404)
+GET {{base}}/authors/{{fakeId}}
+
+### Update author
+PUT {{base}}/authors/{{author2Id}}
+Content-Type: application/json
+
+{ "bio": "Kenyan novelist, playwright and essayist" }
+
+############ BOOKS ############
+
+### Create book
+POST {{base}}/books
+Content-Type: application/json
+
+{ "title": "Things Fall Apart", "genre": "Fiction", "price": 15, "publishedYear": 1958, "author": "{{authorId}}" }
+
+### Create book
+POST {{base}}/books
+Content-Type: application/json
+
+{ "title": "Anthills of the Savannah", "genre": "Fiction", "price": 30, "publishedYear": 1987, "author": "{{authorId}}" }
+
+### Create book
+POST {{base}}/books
+Content-Type: application/json
+
+{ "title": "Home", "genre": "Thriller", "price": 20, "publishedYear": 2000, "author": "{{authorId}}" }
+
+### Different author may ALSO have a book called "Home" (allowed)
+POST {{base}}/books
+Content-Type: application/json
+
+{ "title": "Home", "genre": "Thriller", "price": 25, "publishedYear": 2001, "author": "{{author2Id}}" }
+
+### Get all books (author populated, paginated)
+GET {{base}}/books
+
+### Get one book
+GET {{base}}/books/{{bookId}}
+
+### Get book that does not exist (404)
+GET {{base}}/books/{{fakeId}}
+
+### Update book
+PUT {{base}}/books/{{bookId}}
+Content-Type: application/json
+
+{ "price": 22.5 }
+
+### Books by one author (linking endpoint)
+GET {{base}}/authors/{{authorId}}/books
+
+############ PART 4 — BUSINESS RULES ############
+
+### Rule 1 — orphan book: author id does not exist (400)
+POST {{base}}/books
+Content-Type: application/json
+
+{ "title": "Ghost Book", "genre": "Fiction", "price": 10, "publishedYear": 2000, "author": "{{fakeId}}" }
+
+### Rule 2 — duplicate title, different case, same author (409)
+POST {{base}}/books
+Content-Type: application/json
+
+{ "title": "things fall APART", "genre": "Fiction", "price": 10, "publishedYear": 2000, "author": "{{authorId}}" }
+
+### Rule 3 — price zero (422)
+POST {{base}}/books
+Content-Type: application/json
+
+{ "title": "Free Book", "genre": "Fiction", "price": 0, "publishedYear": 2000, "author": "{{authorId}}" }
+
+### Rule 3 — year in the future (422)
+POST {{base}}/books
+Content-Type: application/json
+
+{ "title": "Future Book", "genre": "Fiction", "price": 10, "publishedYear": 2999, "author": "{{authorId}}" }
+
+### Rule 3 — year before 1450 (422)
+POST {{base}}/books
+Content-Type: application/json
+
+{ "title": "Ancient Book", "genre": "Fiction", "price": 10, "publishedYear": 1200, "author": "{{authorId}}" }
+
+### Rule 4 — delete author who still has books (409, blocked)
+DELETE {{base}}/authors/{{authorId}}
+
+### Rule 5 — only genre
+GET {{base}}/books?genre=Thriller
+
+### Rule 5 — only minPrice
+GET {{base}}/books?minPrice=18
+
+### Rule 5 — combined filters + sort
+GET {{base}}/books?genre=Fiction&minPrice=10&maxPrice=40&search=a&sort=price&order=desc
+
+### Rule 5 — filter by author
+GET {{base}}/books?author={{author2Id}}
+
+### Rule 6 — author stats
+GET {{base}}/authors/{{authorId}}/stats
+
+### Challenge — pagination
+GET {{base}}/books?page=2&limit=2&sort=price
+
+############ CLEAN-UP / DELETE ############
+
+### Delete book
+DELETE {{base}}/books/{{bookId}}
+
+### Rule 6 — stats for an author with no books
+GET {{base}}/authors/{{author2Id}}/stats
+
+### Delete author with no books (allowed)
+DELETE {{base}}/authors/{{author2Id}}
