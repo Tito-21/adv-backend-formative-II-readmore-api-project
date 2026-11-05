@@ -1,4 +1,70 @@
-# ReadMore API — Express + MongoDB (Mongoose)
+# ReadMore API — Implementation
+
+Bookstore REST API built with **Express 5**, **MongoDB** and **Mongoose**.
+Author: Tito SIBO
+
+## Running the project
+
+```bash
+npm install
+cp .env.example .env      # then set MONGO_URI to your local MongoDB or Atlas string
+npm run dev               # or: npm start
+```
+
+The server only starts listening after MongoDB connects. Health check: `GET http://localhost:3000/`.
+Ready-made requests for every endpoint are in [requests.http](requests.http) (VS Code REST Client).
+
+## Project structure
+
+```
+server.js                     entry point: load .env, connect DB, mount routes, start server
+config/db.js                  Mongoose connection (reads MONGO_URI from .env)
+models/Author.js              name (required), country, bio
+models/Book.js                title, genre, price, publishedYear (all required), author → ObjectId ref 'Author'
+controllers/authorController.js   author CRUD, books-by-author, stats, delete policy
+controllers/bookController.js     book CRUD, business rules 1–3, filtering, sorting, pagination
+routes/                       URL → controller wiring only
+middleware/errorHandler.js    404 for unknown routes + central error handler (bad ids, validation, bad JSON)
+```
+
+## Endpoints
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/` | health check |
+| POST / GET | `/authors` | create / list |
+| GET / PUT / DELETE | `/authors/:id` | 404 if not found; DELETE blocked (409) if the author has books |
+| GET | `/authors/:id/books` | all books by that author |
+| GET | `/authors/:id/stats` | bookCount, averagePrice, cheapest / most expensive |
+| POST / GET | `/books` | create / list (author populated, filters, sort, pagination) |
+| GET / PUT / DELETE | `/books/:id` | author populated; 404 if not found |
+
+`GET /books` query params (all optional, any combination): `genre`, `minPrice`, `maxPrice`, `author`, `search`, `sort` (`price` \| `title` \| `publishedYear`), `order` (`asc` \| `desc`), `page`, `limit` (default 10, max 100).
+
+## Business rules and design decisions
+
+| # | Rule | Status | How |
+|---|---|---|---|
+| 1 | No orphan books | 400 | `required` only checks a value is present, not that it points to a real document — so the controller runs `Author.exists()` before saving. |
+| 2 | No duplicate title per author | 409 | Query by **author + title** with collation strength 2 (case-insensitive). Different authors can share a title. On update the book itself is excluded. |
+| 3 | Price > 0, 1450 ≤ year ≤ current year | 422 | Checked in the controller; the current year is computed at request time. |
+| 4 | Deleting an author with books | 409 | **Option A — block.** See below. |
+| 5 | Dynamic search & filter | — | Start with `{}` and add one condition per param that is present. User text is regex-escaped. |
+| 6 | Author stats | — | No books → `bookCount: 0` and `null` for the rest (no data ≠ price 0). |
+
+Rules 1–3 live in one helper (`checkBookRules`) used by both create and update. For updates, the rules are checked against the book's **final** values (existing + changes).
+
+### Why "block" for author deletion
+
+- A bookstore's book records are business history: they may already be sold, in orders, or on invoices. **Cascade (B)** would silently destroy that data with one request.
+- **Reassign (C)** would attribute books to someone who didn't write them ("Unknown Author"), which is misleading to customers.
+- **Block (A)** never loses data and never creates orphans. The person deleting gets a clear 409 explaining what to do.
+
+**Downside:** deleting an author takes extra steps — their books must be deleted or reassigned first, one by one. That friction is deliberate: deleting real business data should be a conscious decision.
+
+---
+
+# Assignment brief — ReadMore API (Express + MongoDB)
 
 Your first backend API assignment. Build a small REST API for a bookstore using **Express.js**, with **MongoDB** as the database and **Mongoose** as the modelling layer.
 
