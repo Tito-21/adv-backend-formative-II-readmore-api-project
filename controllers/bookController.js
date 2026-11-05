@@ -78,9 +78,61 @@ const createBook = async (req, res) => {
   res.status(201).json(book);
 };
 
-// GET /books
+// Escapes characters like . * ( ) so user text is matched literally in a regex
+const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const SORTABLE_FIELDS = ['price', 'title', 'publishedYear'];
+
+// GET /books  — Rule 5: optional filters, applied only when present.
+// The filter object starts empty (= "match everything") and each query
+// parameter that was actually sent adds one condition to it.
 const getBooks = async (req, res) => {
-  const books = await Book.find().populate('author');
+  const { genre, minPrice, maxPrice, author, search, sort, order } = req.query;
+  const filter = {};
+
+  if (genre) {
+    // exact genre, but case-insensitive ("thriller" matches "Thriller")
+    filter.genre = { $regex: `^${escapeRegex(genre)}$`, $options: 'i' };
+  }
+
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    filter.price = {};
+    if (minPrice !== undefined) {
+      if (Number.isNaN(Number(minPrice))) {
+        return res.status(400).json({ message: 'minPrice must be a number' });
+      }
+      filter.price.$gte = Number(minPrice);
+    }
+    if (maxPrice !== undefined) {
+      if (Number.isNaN(Number(maxPrice))) {
+        return res.status(400).json({ message: 'maxPrice must be a number' });
+      }
+      filter.price.$lte = Number(maxPrice);
+    }
+  }
+
+  if (author) {
+    if (!mongoose.isValidObjectId(author)) {
+      return res.status(400).json({ message: `"${author}" is not a valid author id` });
+    }
+    filter.author = author;
+  }
+
+  if (search) {
+    filter.title = { $regex: escapeRegex(search), $options: 'i' };
+  }
+
+  let sortOption = {};
+  if (sort) {
+    if (!SORTABLE_FIELDS.includes(sort)) {
+      return res
+        .status(400)
+        .json({ message: `sort must be one of: ${SORTABLE_FIELDS.join(', ')}` });
+    }
+    sortOption = { [sort]: order === 'desc' ? -1 : 1 };
+  }
+
+  const books = await Book.find(filter).sort(sortOption).populate('author');
   res.json(books);
 };
 
