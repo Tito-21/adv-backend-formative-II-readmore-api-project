@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const connectDB = require('./config/db');
+const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,6 +12,9 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.json({ message: 'ReadMore API is running' });
 });
+
+app.use(notFound);
+app.use(errorHandler);
 
 // Only start listening once the database connection succeeds
 const start = async () => {
