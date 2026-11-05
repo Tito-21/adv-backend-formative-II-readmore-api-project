@@ -8,7 +8,26 @@ const Author = require('../models/Author');
  * with the changes) and returns { status, message } for the first rule
  * broken, or null when everything is fine.
  */
-const checkBookRules = async ({ author }) => {
+const MIN_YEAR = 1450; // the printing press — nothing older counts as a published book
+
+const checkBookRules = async ({ price, publishedYear, author }) => {
+  // Rule 3 — values the schema can't sensibly express.
+  // Checked first: there's no point looking up the author for a book
+  // that could never be valid anyway.
+  if (price !== undefined && !(Number(price) > 0)) {
+    return { status: 422, message: 'Price must be a number greater than 0' };
+  }
+  if (publishedYear !== undefined) {
+    const year = Number(publishedYear);
+    const currentYear = new Date().getFullYear();
+    if (!Number.isInteger(year) || year < MIN_YEAR || year > currentYear) {
+      return {
+        status: 422,
+        message: `Published year must be a whole number between ${MIN_YEAR} and ${currentYear}`,
+      };
+    }
+  }
+
   // Rule 1 — No orphan books.
   // `required` only checks that *some* value is present, and the ObjectId
   // type only checks its format. Neither checks that the author exists,
