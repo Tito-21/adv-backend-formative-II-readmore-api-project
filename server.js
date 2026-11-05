@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const connectDB = require('./config/db');
+const authorRoutes = require('./routes/authorRoutes');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -12,6 +13,8 @@ app.use(express.json());
 app.get('/', (req, res) => {
   res.json({ message: 'ReadMore API is running' });
 });
+
+app.use('/authors', authorRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
