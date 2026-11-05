@@ -10,7 +10,7 @@ const Author = require('../models/Author');
  */
 const MIN_YEAR = 1450; // the printing press — nothing older counts as a published book
 
-const checkBookRules = async ({ price, publishedYear, author }) => {
+const checkBookRules = async ({ title, price, publishedYear, author, excludeId }) => {
   // Rule 3 — values the schema can't sensibly express.
   // Checked first: there's no point looking up the author for a book
   // that could never be valid anyway.
@@ -41,6 +41,24 @@ const checkBookRules = async ({ price, publishedYear, author }) => {
   const authorExists = await Author.exists({ _id: author });
   if (!authorExists) {
     return { status: 400, message: `No author exists with id ${author}; book not saved` };
+  }
+
+  // Rule 2 — no duplicate titles for the SAME author (case-insensitive).
+  // The filter includes the author, so two different authors may still
+  // each have a book called "Home". The collation with strength 2 makes
+  // MongoDB compare strings ignoring upper/lower case.
+  // excludeId stops a book from clashing with itself when it is updated.
+  if (title) {
+    const filter = { author, title: String(title).trim() };
+    if (excludeId) filter._id = { $ne: excludeId };
+
+    const duplicate = await Book.findOne(filter).collation({ locale: 'en', strength: 2 });
+    if (duplicate) {
+      return {
+        status: 409,
+        message: `This author already has a book titled "${duplicate.title}"`,
+      };
+    }
   }
 
   return null;
