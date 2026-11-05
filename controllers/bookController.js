@@ -132,8 +132,27 @@ const getBooks = async (req, res) => {
     sortOption = { [sort]: order === 'desc' ? -1 : 1 };
   }
 
-  const books = await Book.find(filter).sort(sortOption).populate('author');
-  res.json(books);
+  // Challenge — pagination. Defaults: page 1, 10 results per page (max 100).
+  const page = Number(req.query.page ?? 1);
+  const limit = Number(req.query.limit ?? 10);
+  if (!Number.isInteger(page) || page < 1) {
+    return res.status(400).json({ message: 'page must be a whole number of 1 or more' });
+  }
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+    return res.status(400).json({ message: 'limit must be a whole number between 1 and 100' });
+  }
+
+  // Count and fetch with the SAME filter, so `total` matches the results
+  const [total, results] = await Promise.all([
+    Book.countDocuments(filter),
+    Book.find(filter)
+      .sort(sortOption)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate('author'),
+  ]);
+
+  res.json({ page, limit, total, totalPages: Math.ceil(total / limit), results });
 };
 
 // GET /books/:id
