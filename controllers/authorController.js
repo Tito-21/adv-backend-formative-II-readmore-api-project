@@ -71,6 +71,39 @@ const getAuthorBooks = async (req, res) => {
   res.json({ author, count: books.length, books });
 };
 
+// GET /authors/:id/stats — Rule 6
+// With no books there is nothing to average or compare, so we return a
+// count of 0 and null for the rest ("no value") instead of crashing or
+// returning a misleading 0 price.
+const getAuthorStats = async (req, res) => {
+  const author = await Author.findById(req.params.id);
+  if (!author) {
+    return res.status(404).json({ message: `No author found with id ${req.params.id}` });
+  }
+
+  const books = await Book.find({ author: author._id }).sort({ price: 1 });
+
+  if (books.length === 0) {
+    return res.json({
+      author: author.name,
+      bookCount: 0,
+      averagePrice: null,
+      cheapestBook: null,
+      mostExpensiveBook: null,
+    });
+  }
+
+  const total = books.reduce((sum, book) => sum + book.price, 0);
+
+  res.json({
+    author: author.name,
+    bookCount: books.length,
+    averagePrice: Math.round((total / books.length) * 100) / 100,
+    cheapestBook: books[0].title,
+    mostExpensiveBook: books[books.length - 1].title,
+  });
+};
+
 module.exports = {
   createAuthor,
   getAuthors,
@@ -78,4 +111,5 @@ module.exports = {
   updateAuthor,
   deleteAuthor,
   getAuthorBooks,
+  getAuthorStats,
 };
