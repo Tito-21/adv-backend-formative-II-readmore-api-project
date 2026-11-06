@@ -3,9 +3,9 @@
 ### After creating authors/books, paste their real _id values into the variables below.
 
 @base = http://localhost:3000
-@authorId = PASTE_AUTHOR_ID
-@author2Id = PASTE_SECOND_AUTHOR_ID
-@bookId = PASTE_BOOK_ID
+@authorId = 6aedade9d49c2d60b5c0d1d2
+@author2Id = 6aedaea0d49c2d60b5c0d1d4
+@bookId = 6aedb03bd49c2d60b5c0d1d8
 @fakeId = 507f1f77bcf86cd799439011
 
 ### Health check
