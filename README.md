@@ -2,7 +2,7 @@
 
 Bookstore REST API built with **Express 5**, **MongoDB** and **Mongoose**.
 Author: Tito SIBO
-link to the video: ([url](https://youtu.be/wn7BhyNIdNY))
+link to the video: [https://youtu.be/2Q9PjvVbI_4](url)
 
 ## Running the project
 
